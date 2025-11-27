@@ -1,0 +1,45 @@
+version: '3.8'
+
+services:
+  pulso-app:
+    build: .
+    container_name: pulso-app
+    environment:
+      # Cache configuration
+      - PULSO_CACHE_DIR=/cache
+      - PULSO_SESSION_ID=${PULSO_SESSION_ID:-default}
+      - PULSO_CACHE_BACKEND=${PULSO_CACHE_BACKEND:-filesystem}
+      - PULSO_REDIS_URL=redis://redis:6379/0
+
+      # Logging
+      - PULSO_LOG_LEVEL=${PULSO_LOG_LEVEL:-INFO}
+
+      # Default policies
+      - PULSO_DEFAULT_TTL=${PULSO_DEFAULT_TTL:-1d}
+      - PULSO_DEFAULT_DRIVER=${PULSO_DEFAULT_DRIVER:-requests}
+      - PULSO_DEFAULT_MAX_RETRIES=${PULSO_DEFAULT_MAX_RETRIES:-3}
+      - PULSO_DEFAULT_RETRY_DELAY=${PULSO_DEFAULT_RETRY_DELAY:-1.0}
+      - PULSO_DEFAULT_FALLBACK=${PULSO_DEFAULT_FALLBACK:-return_cached}
+    volumes:
+      # Mount cache directory for persistence
+      - pulso-cache:/cache
+      # Mount your application code
+      - ./your-app:/app/your-app
+    depends_on:
+      - redis
+    command: python your-app/main.py
+
+  redis:
+    image: redis:7-alpine
+    container_name: pulso-redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis-data:/data
+    command: redis-server --appendonly yes
+
+volumes:
+  pulso-cache:
+    driver: local
+  redis-data:
+    driver: local
